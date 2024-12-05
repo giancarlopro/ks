@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -21,25 +22,5 @@ func TestEnterInteractiveShell(t *testing.T) {
 	err := cmd.Run()
 	if err != nil {
 		t.Errorf("Error entering interactive shell: %v", err)
-	}
-}
-
-func TestListClusters(t *testing.T) {
-	configDir := filepath.Join(os.Getenv("HOME"), ".config", "ks", "clusters")
-	files, err := os.ReadDir(configDir)
-	if err != nil {
-		t.Errorf("Error listing clusters: %v", err)
-	}
-
-	var clusters []string
-	for _, file := range files {
-		if file.IsDir() {
-			continue
-		}
-		clusters = append(clusters, file.Name())
-	}
-
-	if len(clusters) == 0 {
-		t.Errorf("No clusters found")
 	}
 }

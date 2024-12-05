@@ -50,24 +50,6 @@ func Execute() {
 	}
 }
 
-func listClusters() ([]string, error) {
-	configDir := filepath.Join(os.Getenv("HOME"), ".config", "ks", "clusters")
-	files, err := os.ReadDir(configDir)
-	if err != nil {
-		return nil, err
-	}
-
-	var clusters []string
-	for _, file := range files {
-		if file.IsDir() {
-			continue
-		}
-		clusters = append(clusters, file.Name())
-	}
-
-	return clusters, nil
-}
-
 func enterInteractiveShell(cluster string) error {
 	configDir := filepath.Join(os.Getenv("HOME"), ".config", "ks", "clusters")
 	configFile := filepath.Join(configDir, cluster+".yaml")

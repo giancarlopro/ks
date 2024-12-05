@@ -13,6 +13,12 @@ func TestReadConfig(t *testing.T) {
 	configDir := filepath.Join(os.Getenv("HOME"), ".config", "ks", "clusters")
 	configFile := filepath.Join(configDir, "test-cluster.yaml")
 
+	// Create the test configuration directory if it doesn't exist
+	err := os.MkdirAll(configDir, 0755)
+	if err != nil {
+		t.Fatalf("Error creating config directory: %v", err)
+	}
+
 	// Create a test configuration file
 	initialConfig := ClusterConfig{
 		APIVersion: "v1",
@@ -105,6 +111,12 @@ func TestReadConfig(t *testing.T) {
 func TestWriteConfig(t *testing.T) {
 	configDir := filepath.Join(os.Getenv("HOME"), ".config", "ks", "clusters")
 	configFile := filepath.Join(configDir, "test-cluster.yaml")
+
+	// Create the test configuration directory if it doesn't exist
+	err := os.MkdirAll(configDir, 0755)
+	if err != nil {
+		t.Fatalf("Error creating config directory: %v", err)
+	}
 
 	// Create a test configuration
 	initialConfig := ClusterConfig{

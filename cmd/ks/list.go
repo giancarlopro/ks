@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -26,6 +27,11 @@ var listCmd = &cobra.Command{
 
 func listClusters() ([]string, error) {
 	configDir := filepath.Join(os.Getenv("HOME"), ".config", "ks", "clusters")
+
+	if err := os.MkdirAll(configDir, 0755); err != nil {
+		return nil, fmt.Errorf("failed to create config directory: %w", err)
+	}
+
 	files, err := os.ReadDir(configDir)
 	if err != nil {
 		return nil, err
@@ -36,7 +42,9 @@ func listClusters() ([]string, error) {
 		if file.IsDir() {
 			continue
 		}
-		clusters = append(clusters, file.Name())
+
+		name := strings.TrimSuffix(file.Name(), ".yaml")
+		clusters = append(clusters, name)
 	}
 
 	return clusters, nil

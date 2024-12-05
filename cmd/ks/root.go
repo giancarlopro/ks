@@ -20,6 +20,11 @@ var rootCmd = &cobra.Command{
 			return
 		}
 
+		if len(clusters) == 0 {
+			fmt.Println("No clusters found")
+			return
+		}
+
 		for i, cluster := range clusters {
 			fmt.Printf("%d. %s\n", i+1, cluster)
 		}

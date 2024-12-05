@@ -13,12 +13,18 @@ func TestAddCommand(t *testing.T) {
 	clusterName := "test-cluster"
 	configFile := filepath.Join(configDir, clusterName+".yaml")
 
+	// Create the directory if it does not exist
+	err := os.MkdirAll(configDir, 0755)
+	if err != nil {
+		t.Fatalf("Error creating config directory: %v", err)
+	}
+
 	// Clean up any existing test files
 	os.Remove(configFile)
 
 	// Run the add command
 	addCmd.SetArgs([]string{clusterName})
-	err := addCmd.Execute()
+	err = addCmd.Execute()
 	if err != nil {
 		t.Fatalf("Error executing add command: %v", err)
 	}

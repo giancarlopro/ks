@@ -29,7 +29,7 @@ func TestEditCluster(t *testing.T) {
 	os.Setenv("EDITOR", "true")
 
 	// Run the edit command
-	cmd := exec.Command("go", "run", "main.go", "edit", clusterName)
+	cmd := exec.Command("go", "run", ".", "edit", clusterName)
 	cmd.Env = append(os.Environ(), "EDITOR=true")
 	err = cmd.Run()
 	if err != nil {

@@ -28,6 +28,9 @@ func TestActivateCluster(t *testing.T) {
 	}
 	defer file.Close()
 
+	// Set the KUBECONFIG environment variable
+	os.Setenv("KUBECONFIG", configFile)
+
 	// Run the activateCluster function
 	err = activateCluster(clusterName)
 	if err != nil {
@@ -61,6 +64,9 @@ func TestActivateClusterCommand(t *testing.T) {
 		t.Fatalf("Error creating config file: %v", err)
 	}
 	defer file.Close()
+
+	// Set the KUBECONFIG environment variable
+	os.Setenv("KUBECONFIG", configFile)
 
 	// Run the activate command
 	cmd := exec.Command("go", "run", ".", "activate", clusterName)

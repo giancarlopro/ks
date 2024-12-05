@@ -67,7 +67,34 @@ users:
 	}
 
 	// Verify the cluster details
-	expectedDetails := testData
+	expectedDetails := `
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority-data: test-ca
+    server: test-server
+  name: test-cluster
+contexts:
+- context:
+    cluster: test-cluster
+    namespace: test-namespace
+    user: test-user
+  name: test-cluster
+current-context: test-cluster
+kind: Config
+preferences: {}
+users:
+- name: test-user
+  user:
+    exec:
+      apiVersion: client.authentication.k8s.io/v1beta1
+      args: null
+      command: test-command
+      env: null
+      installHint: test-installHint
+      interactiveMode: IfAvailable
+      provideClusterInfo: true
+`
 	if clusterDetails != expectedDetails {
 		t.Errorf("Cluster details do not match. Expected: %s, Got: %s", expectedDetails, clusterDetails)
 	}

@@ -16,7 +16,7 @@ var activateCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		cluster := args[0]
 		err := activateCluster(cluster)
-		if err != nil {
+		if (err != nil) {
 			fmt.Println("Error activating cluster:", err)
 		}
 	},

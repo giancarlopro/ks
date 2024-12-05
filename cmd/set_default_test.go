@@ -17,6 +17,10 @@ func TestSetDefaultCluster(t *testing.T) {
 	configFile := filepath.Join(configDir, clusterName+".yaml")
 	os.WriteFile(configFile, []byte("sample config"), 0644)
 
+	// Create the .kube directory if it does not exist
+	kubeDir := filepath.Join(tempDir, ".kube")
+	os.MkdirAll(kubeDir, 0755)
+
 	// Set the environment variable for the config directory
 	os.Setenv("HOME", tempDir)
 

@@ -27,7 +27,7 @@ var getCmd = &cobra.Command{
 
 func getClusterDetails(clusterName string) (string, error) {
 	configDir := filepath.Join(os.Getenv("HOME"), ".config", "ks", "clusters")
-	configFile := filepath.Join(configDir, clusterName)
+	configFile := filepath.Join(configDir, clusterName+".yaml")
 
 	file, err := os.ReadFile(configFile)
 	if err != nil {

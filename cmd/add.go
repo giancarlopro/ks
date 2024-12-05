@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v2"
 )
 
 var addCmd = &cobra.Command{
@@ -31,6 +32,61 @@ var addCmd = &cobra.Command{
 			return
 		}
 		defer file.Close()
+
+		// Create the initial kubectl format configuration
+		initialConfig := map[string]interface{}{
+			"apiVersion": "v1",
+			"clusters": []map[string]interface{}{
+				{
+					"cluster": map[string]interface{}{
+						"certificate-authority-data": "",
+						"server":                     "",
+					},
+					"name": clusterName,
+				},
+			},
+			"contexts": []map[string]interface{}{
+				{
+					"context": map[string]interface{}{
+						"cluster":   clusterName,
+						"namespace": "default",
+						"user":      clusterName,
+					},
+					"name": clusterName,
+				},
+			},
+			"current-context": clusterName,
+			"kind":            "Config",
+			"preferences":     map[string]interface{}{},
+			"users": []map[string]interface{}{
+				{
+					"name": clusterName,
+					"user": map[string]interface{}{
+						"exec": map[string]interface{}{
+							"apiVersion":        "client.authentication.k8s.io/v1beta1",
+							"args":              nil,
+							"command":           "gke-gcloud-auth-plugin",
+							"env":               nil,
+							"installHint":       "Install gke-gcloud-auth-plugin for use with kubectl by following https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-access-for-kubectl#install_plugin",
+							"interactiveMode":   "IfAvailable",
+							"provideClusterInfo": true,
+						},
+					},
+				},
+			},
+		}
+
+		// Write the initial configuration to the file
+		data, err := yaml.Marshal(&initialConfig)
+		if err != nil {
+			fmt.Println("Error marshalling initial configuration:", err)
+			return
+		}
+
+		if _, err := file.Write(data); err != nil {
+			fmt.Println("Error writing initial configuration to file:", err)
+			return
+		}
 
 		// Open the default editor for the user to set the content of the file
 		editor := os.Getenv("EDITOR")

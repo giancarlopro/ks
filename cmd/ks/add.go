@@ -71,7 +71,7 @@ clusters:
 
 		// Save to final location
 		configPath := filepath.Join(configDir, clusterName+".yaml")
-		if err := os.WriteFile(configPath, content, 0644); err != nil {
+		if err := os.WriteFile(configPath, content, 0600); err != nil {
 			fmt.Println("Error saving config:", err)
 			return
 		}

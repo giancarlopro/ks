@@ -7,33 +7,106 @@ The `ks` CLI uses YAML configuration files to store information about Kubernetes
 Each YAML configuration file should follow the structure below:
 
 ```yaml
-name: <cluster-name>
-server: <server-url>
-token: <authentication-token>
+apiVersion: v1
+clusters:
+  - cluster:
+      certificate-authority-data: <ca>
+      server: <ip>
+    name: <cluster-name>
+contexts:
+  - context:
+      cluster: <cluster-name>
+      namespace: <namespace>
+      user: <user>
+    name: <context-name>
+current-context: <context-name>
+kind: Config
+preferences: {}
+users:
+  - name: <user>
+    user:
+      exec:
+        apiVersion: client.authentication.k8s.io/v1beta1
+        args: null
+        command: gke-gcloud-auth-plugin
+        env: null
+        installHint: Install gke-gcloud-auth-plugin for use with kubectl by following https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-access-for-kubectl#install_plugin
+        interactiveMode: IfAvailable
+        provideClusterInfo: true
 ```
 
 ### Fields
 
-- `name`: The name of the Kubernetes cluster. This field is required.
-- `server`: The URL of the Kubernetes API server. This field is required.
-- `token`: The authentication token for accessing the Kubernetes API server. This field is required.
+- `apiVersion`: The API version of the configuration. This field is required.
+- `clusters`: A list of clusters, each containing the `certificate-authority-data` and `server` fields. This field is required.
+- `contexts`: A list of contexts, each containing the `cluster`, `namespace`, and `user` fields. This field is required.
+- `current-context`: The name of the current context. This field is required.
+- `kind`: The kind of the configuration. This field is required.
+- `preferences`: A map of preferences. This field is optional.
+- `users`: A list of users, each containing the `exec` field with the `apiVersion`, `args`, `command`, `env`, `installHint`, `interactiveMode`, and `provideClusterInfo` fields. This field is required.
 
 ## Examples of Valid Configuration Files
 
 ### Example 1
 
 ```yaml
-name: my-cluster
-server: https://my-cluster.example.com
-token: abcdef1234567890
+apiVersion: v1
+clusters:
+  - cluster:
+      certificate-authority-data: abcdef1234567890
+      server: https://my-cluster.example.com
+    name: my-cluster
+contexts:
+  - context:
+      cluster: my-cluster
+      namespace: default
+      user: my-cluster
+    name: my-cluster
+current-context: my-cluster
+kind: Config
+preferences: {}
+users:
+  - name: my-cluster
+    user:
+      exec:
+        apiVersion: client.authentication.k8s.io/v1beta1
+        args: null
+        command: gke-gcloud-auth-plugin
+        env: null
+        installHint: Install gke-gcloud-auth-plugin for use with kubectl by following https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-access-for-kubectl#install_plugin
+        interactiveMode: IfAvailable
+        provideClusterInfo: true
 ```
 
 ### Example 2
 
 ```yaml
-name: another-cluster
-server: https://another-cluster.example.com
-token: 0987654321fedcba
+apiVersion: v1
+clusters:
+  - cluster:
+      certificate-authority-data: 0987654321fedcba
+      server: https://another-cluster.example.com
+    name: another-cluster
+contexts:
+  - context:
+      cluster: another-cluster
+      namespace: default
+      user: another-cluster
+    name: another-cluster
+current-context: another-cluster
+kind: Config
+preferences: {}
+users:
+  - name: another-cluster
+    user:
+      exec:
+        apiVersion: client.authentication.k8s.io/v1beta1
+        args: null
+        command: gke-gcloud-auth-plugin
+        env: null
+        installHint: Install gke-gcloud-auth-plugin for use with kubectl by following https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-access-for-kubectl#install_plugin
+        interactiveMode: IfAvailable
+        provideClusterInfo: true
 ```
 
 ## Validation

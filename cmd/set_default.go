@@ -27,7 +27,7 @@ func init() {
 
 func setDefaultCluster(cluster string) error {
 	configDir := filepath.Join(os.Getenv("HOME"), ".config", "ks", "clusters")
-	configFile := filepath.Join(configDir, cluster)
+	configFile := filepath.Join(configDir, cluster+".yaml")
 	defaultConfigFile := filepath.Join(os.Getenv("HOME"), ".kube", "config")
 
 	// Remove existing symbolic link if it exists

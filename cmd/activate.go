@@ -28,7 +28,7 @@ func init() {
 
 func activateCluster(cluster string) error {
 	configDir := filepath.Join(os.Getenv("HOME"), ".config", "ks", "clusters")
-	configFile := filepath.Join(configDir, cluster)
+	configFile := filepath.Join(configDir, cluster+".yaml")
 
 	cmd := exec.Command("zsh")
 	cmd.Env = append(os.Environ(), fmt.Sprintf("KUBECONFIG=%s", configFile))

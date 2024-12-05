@@ -35,7 +35,7 @@ var zshIntegrationCmd = &cobra.Command{
 
 		// Set the KUBECONFIG environment variable
 		configDir := filepath.Join(os.Getenv("HOME"), ".config", "ks", "clusters")
-		configFile := filepath.Join(configDir, string(cluster))
+		configFile := filepath.Join(configDir, string(cluster)+".yaml")
 		if _, err := os.Stat(configFile); os.IsNotExist(err) {
 			fmt.Println("Cluster configuration file not found:", string(cluster))
 			return

@@ -1,4 +1,4 @@
-package ks
+package cmd
 
 import (
 	"os"

@@ -8,8 +8,8 @@ To install the `ks` CLI, follow these steps:
 
 1. Clone the repository:
    ```sh
-   git clone https://github.com/githubnext/workspace-blank.git
-   cd workspace-blank
+   git clone https://github.com/giancarlopro/ks.git
+   cd ks
    ```
 
 2. Build the `ks` CLI:
@@ -20,6 +20,11 @@ To install the `ks` CLI, follow these steps:
 3. Move the `ks` binary to a directory in your `PATH`:
    ```sh
    mv ks /usr/local/bin/
+   ```
+
+4. Alternatively, you can install the `ks` CLI using `go install`:
+   ```sh
+   go install github.com/giancarlopro/ks/cmd/ks@latest
    ```
 
 ## Usage

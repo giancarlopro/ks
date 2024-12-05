@@ -1,4 +1,4 @@
-package cmd
+package ks
 
 import (
 	"fmt"
@@ -63,12 +63,12 @@ var addCmd = &cobra.Command{
 					"name": clusterName,
 					"user": map[string]interface{}{
 						"exec": map[string]interface{}{
-							"apiVersion":        "client.authentication.k8s.io/v1beta1",
-							"args":              nil,
-							"command":           "gke-gcloud-auth-plugin",
-							"env":               nil,
-							"installHint":       "Install gke-gcloud-auth-plugin for use with kubectl by following https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-access-for-kubectl#install_plugin",
-							"interactiveMode":   "IfAvailable",
+							"apiVersion":         "client.authentication.k8s.io/v1beta1",
+							"args":               nil,
+							"command":            "gke-gcloud-auth-plugin",
+							"env":                nil,
+							"installHint":        "Install gke-gcloud-auth-plugin for use with kubectl by following https://cloud.google.com/kubernetes-engine/docs/how-to/cluster-access-for-kubectl#install_plugin",
+							"interactiveMode":    "IfAvailable",
 							"provideClusterInfo": true,
 						},
 					},

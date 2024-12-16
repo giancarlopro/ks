@@ -6,6 +6,8 @@ import (
 	"os/exec"
 	"path/filepath"
 
+	"github.com/ktr0731/go-fuzzyfinder"
+	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 )
 
@@ -25,23 +27,34 @@ var rootCmd = &cobra.Command{
 			return
 		}
 
-		for i, cluster := range clusters {
-			fmt.Printf("%d. %s\n", i+1, cluster)
-		}
-
-		// Prompt the user to select a cluster
-		var choice int
-		fmt.Print("Select a cluster: ")
-		fmt.Scan(&choice)
-
-		if choice < 1 || choice > len(clusters) {
-			fmt.Println("Invalid choice")
-			return
+		var selectedCluster string
+		if isFzfAvailable() {
+			idx, err := fuzzyfinder.Find(
+				clusters,
+				func(i int) string {
+					return clusters[i]
+				},
+			)
+			if err != nil {
+				fmt.Println("Error using fzf:", err)
+				return
+			}
+			selectedCluster = clusters[idx]
+		} else {
+			prompt := promptui.Select{
+				Label: "Select a cluster",
+				Items: clusters,
+			}
+			_, result, err := prompt.Run()
+			if err != nil {
+				fmt.Println("Error using promptui:", err)
+				return
+			}
+			selectedCluster = result
 		}
 
 		// Enter an interactive shell with the selected cluster
-		cluster := clusters[choice-1]
-		err = enterInteractiveShell(cluster)
+		err = enterInteractiveShell(selectedCluster)
 		if err != nil {
 			fmt.Println("Error entering interactive shell:", err)
 		}
@@ -66,4 +79,9 @@ func enterInteractiveShell(cluster string) error {
 	cmd.Stderr = os.Stderr
 
 	return cmd.Run()
+}
+
+func isFzfAvailable() bool {
+	_, err := exec.LookPath("fzf")
+	return err == nil
 }

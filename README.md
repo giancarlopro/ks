@@ -4,27 +4,9 @@ The `ks` CLI is a command line tool for managing multiple Kubernetes configurati
 
 ## Installation
 
-To install the `ks` CLI, follow these steps:
-
-1. Clone the repository:
+Install the `ks` CLI using `go install`:
    ```sh
-   git clone https://github.com/giancarlopro/ks.git
-   cd ks
-   ```
-
-2. Build the `ks` CLI:
-   ```sh
-   go build -o ks
-   ```
-
-3. Move the `ks` binary to a directory in your `PATH`:
-   ```sh
-   mv ks /usr/local/bin/
-   ```
-
-4. Alternatively, you can install the `ks` CLI using `go install`:
-   ```sh
-   go install github.com/giancarlopro/ks/cmd/ks@latest
+   go install github.com/giancarlopro/ks@latest
    ```
 
 ## Usage

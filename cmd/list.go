@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -26,7 +25,7 @@ var listCmd = &cobra.Command{
 }
 
 func listClusters() ([]string, error) {
-	configDir := filepath.Join(os.Getenv("HOME"), ".config", "ks", "clusters")
+	configDir := clustersDir()
 
 	if err := os.MkdirAll(configDir, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create config directory: %w", err)

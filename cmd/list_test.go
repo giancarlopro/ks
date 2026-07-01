@@ -40,8 +40,8 @@ func TestListClusters(t *testing.T) {
 		t.Fatalf("Error listing clusters: %v", err)
 	}
 
-	// Verify the clusters
-	expectedClusters := []string{clusterName1 + ".yaml", clusterName2 + ".yaml"}
+	// Verify the clusters (listClusters strips the .yaml suffix)
+	expectedClusters := []string{clusterName1, clusterName2}
 	if len(clusters) != len(expectedClusters) {
 		t.Errorf("Expected %d clusters, got %d", len(expectedClusters), len(clusters))
 	}

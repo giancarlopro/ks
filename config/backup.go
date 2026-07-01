@@ -8,8 +8,8 @@ import (
 )
 
 func CreateBackup(clusterName string) error {
-	configDir := filepath.Join(os.Getenv("HOME"), ".config", "ks", "clusters")
-	configFile := filepath.Join(configDir, clusterName+".yaml")
+	configDir := ClustersDir()
+	configFile := ClusterConfigFile(clusterName)
 	backupDir := filepath.Join(configDir, "backups")
 
 	// Create the backup directory if it doesn't exist
@@ -36,8 +36,8 @@ func CreateBackup(clusterName string) error {
 }
 
 func RecoverFromBackup(clusterName string) error {
-	configDir := filepath.Join(os.Getenv("HOME"), ".config", "ks", "clusters")
-	configFile := filepath.Join(configDir, clusterName+".yaml")
+	configDir := ClustersDir()
+	configFile := ClusterConfigFile(clusterName)
 	backupDir := filepath.Join(configDir, "backups")
 	backupFile := filepath.Join(backupDir, clusterName+".yaml.bak")
 

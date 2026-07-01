@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 
 	"github.com/spf13/cobra"
 )
@@ -14,8 +13,7 @@ var deleteCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		clusterName := args[0]
-		configDir := filepath.Join(os.Getenv("HOME"), ".config", "ks", "clusters")
-		configFile := filepath.Join(configDir, clusterName+".yaml")
+		configFile := clusterConfigFile(clusterName)
 
 		// Check if the cluster exists
 		if _, err := os.Stat(configFile); os.IsNotExist(err) {

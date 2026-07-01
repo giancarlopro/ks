@@ -2,6 +2,8 @@
 
 The `ks` CLI is a command line tool for managing multiple Kubernetes configurations. It allows you to register, manage, and activate Kubernetes clusters, as well as integrate with Zsh and Oh-My-Zsh.
 
+It runs on Linux, macOS, and Windows. On Windows it uses `%USERPROFILE%` for the home directory, spawns the shell defined by `ComSpec` (defaulting to `cmd.exe`), defaults to `notepad` as the editor, and copies the default kubeconfig when symlinks aren't permitted.
+
 ## Installation
 
 Install the `ks` CLI using `go install`:
@@ -14,6 +16,7 @@ Install the `ks` CLI using `go install`:
 The `ks` CLI provides the following commands:
 
 - `ks`: Shows a list of clusters that you can select to enter an interactive shell with the correct environment variables.
+- `ks <cluster-name>`: Activate a cluster directly, without opening the selector, entering an interactive shell with the correct environment variables.
 - `ks add <cluster-name>`: Register a new Kubernetes cluster with the given name and open the default editor for the user to set the content of the file.
 - `ks list`: List all registered Kubernetes clusters.
 - `ks get <cluster-name>`: Get the details of a specific Kubernetes cluster.

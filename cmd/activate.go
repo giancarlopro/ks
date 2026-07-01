@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"path/filepath"
 
 	"github.com/spf13/cobra"
 )
@@ -27,15 +26,16 @@ func init() {
 }
 
 func activateCluster(cluster string) error {
-	configDir := filepath.Join(os.Getenv("HOME"), ".config", "ks", "clusters")
-	configFile := filepath.Join(configDir, cluster+".yaml")
+	configFile := clusterConfigFile(cluster)
 
-	shell := os.Getenv("SHELL")
-	if shell == "" {
-		shell = "/bin/bash"
+	if _, err := os.Stat(configFile); err != nil {
+		if os.IsNotExist(err) {
+			return fmt.Errorf("cluster %q does not exist", cluster)
+		}
+		return err
 	}
 
-	cmd := exec.Command(shell)
+	cmd := exec.Command(defaultShell())
 	cmd.Env = append(os.Environ(), fmt.Sprintf("KUBECONFIG=%s", configFile))
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout

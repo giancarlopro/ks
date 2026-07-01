@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"path/filepath"
 
 	"github.com/spf13/cobra"
 )
@@ -15,18 +14,12 @@ var addCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		clusterName := args[0]
-		configDir := filepath.Join(os.Getenv("HOME"), ".config", "ks", "clusters")
+		configDir := clustersDir()
 
 		// Create config directory if it doesn't exist
 		if err := os.MkdirAll(configDir, 0755); err != nil {
 			fmt.Println("Error creating config directory:", err)
 			return
-		}
-
-		// Get editor from environment
-		editor := os.Getenv("EDITOR")
-		if editor == "" {
-			editor = "vim" // Fallback to vim
 		}
 
 		// Create temporary file
@@ -52,7 +45,7 @@ clusters:
 		tmpfile.Close()
 
 		// Open editor
-		cmdEditor := exec.Command(editor, tmpfile.Name())
+		cmdEditor := exec.Command(defaultEditor(), tmpfile.Name())
 		cmdEditor.Stdin = os.Stdin
 		cmdEditor.Stdout = os.Stdout
 		cmdEditor.Stderr = os.Stderr
@@ -70,7 +63,7 @@ clusters:
 		}
 
 		// Save to final location
-		configPath := filepath.Join(configDir, clusterName+".yaml")
+		configPath := clusterConfigFile(clusterName)
 		if err := os.WriteFile(configPath, content, 0600); err != nil {
 			fmt.Println("Error saving config:", err)
 			return

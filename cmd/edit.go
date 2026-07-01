@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"path/filepath"
 
 	"github.com/spf13/cobra"
 )
@@ -15,8 +14,7 @@ var editCmd = &cobra.Command{
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		clusterName := args[0]
-		configDir := filepath.Join(os.Getenv("HOME"), ".config", "ks", "clusters")
-		configFile := filepath.Join(configDir, clusterName+".yaml")
+		configFile := clusterConfigFile(clusterName)
 
 		// Check if the cluster exists
 		if _, err := os.Stat(configFile); os.IsNotExist(err) {
@@ -25,12 +23,7 @@ var editCmd = &cobra.Command{
 		}
 
 		// Open the default editor for the user to edit the configuration file
-		editor := os.Getenv("EDITOR")
-		if editor == "" {
-			editor = "nano"
-		}
-
-		cmdEditor := exec.Command(editor, configFile)
+		cmdEditor := exec.Command(defaultEditor(), configFile)
 		cmdEditor.Stdin = os.Stdin
 		cmdEditor.Stdout = os.Stdout
 		cmdEditor.Stderr = os.Stderr

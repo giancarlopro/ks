@@ -3,8 +3,6 @@ package config
 import (
 	"fmt"
 	"io/ioutil"
-	"os"
-	"path/filepath"
 
 	"gopkg.in/yaml.v2"
 )
@@ -60,8 +58,7 @@ type ExecDetails struct {
 }
 
 func ReadConfig(clusterName string) (*ClusterConfig, error) {
-	configDir := filepath.Join(os.Getenv("HOME"), ".config", "ks", "clusters")
-	configFile := filepath.Join(configDir, clusterName+".yaml")
+	configFile := ClusterConfigFile(clusterName)
 
 	data, err := ioutil.ReadFile(configFile)
 	if err != nil {
@@ -77,8 +74,7 @@ func ReadConfig(clusterName string) (*ClusterConfig, error) {
 }
 
 func WriteConfig(config *ClusterConfig) error {
-	configDir := filepath.Join(os.Getenv("HOME"), ".config", "ks", "clusters")
-	configFile := filepath.Join(configDir, config.Clusters[0].Name+".yaml")
+	configFile := ClusterConfigFile(config.Clusters[0].Name)
 
 	data, err := yaml.Marshal(config)
 	if err != nil {

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"path/filepath"
 
 	"github.com/ktr0731/go-fuzzyfinder"
 	"github.com/manifoldco/promptui"
@@ -12,10 +11,22 @@ import (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "ks",
+	Use:   "ks [cluster-name]",
 	Short: "ks is a CLI tool for managing Kubernetes clusters",
+	Long: "ks is a CLI tool for managing Kubernetes clusters.\n\n" +
+		"Run `ks` with no arguments to pick a cluster interactively, or\n" +
+		"`ks <cluster-name>` to activate a cluster directly.",
+	Args: cobra.MaximumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		// Display the list of clusters
+		// If a cluster name is passed directly, activate it without prompting.
+		if len(args) == 1 {
+			if err := activateCluster(args[0]); err != nil {
+				fmt.Println("Error activating cluster:", err)
+			}
+			return
+		}
+
+		// Otherwise, display the list of clusters to choose from.
 		clusters, err := listClusters()
 		if err != nil {
 			fmt.Println("Error listing clusters:", err)
@@ -27,38 +38,40 @@ var rootCmd = &cobra.Command{
 			return
 		}
 
-		var selectedCluster string
-		if isFzfAvailable() {
-			idx, err := fuzzyfinder.Find(
-				clusters,
-				func(i int) string {
-					return clusters[i]
-				},
-			)
-			if err != nil {
-				fmt.Println("Error using fzf:", err)
-				return
-			}
-			selectedCluster = clusters[idx]
-		} else {
-			prompt := promptui.Select{
-				Label: "Select a cluster",
-				Items: clusters,
-			}
-			_, result, err := prompt.Run()
-			if err != nil {
-				fmt.Println("Error using promptui:", err)
-				return
-			}
-			selectedCluster = result
+		selectedCluster, err := selectCluster(clusters)
+		if err != nil {
+			fmt.Println("Error selecting cluster:", err)
+			return
 		}
 
-		// Enter an interactive shell with the selected cluster
-		err = enterInteractiveShell(selectedCluster)
-		if err != nil {
-			fmt.Println("Error entering interactive shell:", err)
+		if err := activateCluster(selectedCluster); err != nil {
+			fmt.Println("Error activating cluster:", err)
 		}
 	},
+}
+
+// selectCluster prompts the user to choose a cluster, using fzf when available
+// and falling back to a simple prompt otherwise.
+func selectCluster(clusters []string) (string, error) {
+	if isFzfAvailable() {
+		idx, err := fuzzyfinder.Find(clusters, func(i int) string {
+			return clusters[i]
+		})
+		if err != nil {
+			return "", fmt.Errorf("error using fzf: %w", err)
+		}
+		return clusters[idx], nil
+	}
+
+	prompt := promptui.Select{
+		Label: "Select a cluster",
+		Items: clusters,
+	}
+	_, result, err := prompt.Run()
+	if err != nil {
+		return "", fmt.Errorf("error using prompt: %w", err)
+	}
+	return result, nil
 }
 
 func Execute() {
@@ -66,19 +79,6 @@ func Execute() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-}
-
-func enterInteractiveShell(cluster string) error {
-	configDir := filepath.Join(os.Getenv("HOME"), ".config", "ks", "clusters")
-	configFile := filepath.Join(configDir, cluster+".yaml")
-
-	cmd := exec.Command("zsh")
-	cmd.Env = append(os.Environ(), fmt.Sprintf("KUBECONFIG=%s", configFile))
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	return cmd.Run()
 }
 
 func isFzfAvailable() bool {

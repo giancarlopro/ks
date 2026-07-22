@@ -7,9 +7,10 @@ It runs on Linux, macOS, and Windows. On Windows it uses `%USERPROFILE%` for the
 ## Installation
 
 Install the `ks` CLI using `go install`:
-   ```sh
-   go install github.com/giancarlopro/ks@latest
-   ```
+
+```sh
+go install github.com/giancarlopro/ks@latest
+```
 
 ## Usage
 
@@ -71,19 +72,22 @@ reg add "HKCU\Software\Microsoft\Command Processor" /v AutoRun /d "%USERPROFILE%
 To set up Zsh and Oh-My-Zsh integration, follow these steps:
 
 1. Create a `.ksconfig` file in the project directory to specify the desired Kubernetes cluster:
-   ```sh
-   echo "cluster-name" > .ksconfig
-   ```
 
-2. Add the following lines to your `.zshrc` file to enable the integration:
-   ```sh
-   ks zsh-integration
-   ```
+```sh
+echo "cluster-name" > .ksconfig
+```
 
-3. Restart your terminal or source the `.zshrc` file:
-   ```sh
-   source ~/.zshrc
-   ```
+1. Add the following lines to your `.zshrc` file to enable the integration:
+
+```sh
+ks zsh-integration
+```
+
+1. Restart your terminal or source the `.zshrc` file:
+
+```sh
+source ~/.zshrc
+```
 
 Now, when you navigate to a directory with a `.ksconfig` file, the `KUBECONFIG` environment variable will be automatically set to the specified cluster's configuration file.
 

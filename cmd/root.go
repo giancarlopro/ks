@@ -17,6 +17,8 @@ var rootCmd = &cobra.Command{
 		"Run `ks` with no arguments to pick a cluster interactively, or\n" +
 		"`ks <cluster-name>` to activate a cluster directly.",
 	Args: cobra.MaximumNArgs(1),
+	// Runtime errors are reported by Cobra itself; don't also dump usage.
+	SilenceUsage: true,
 	Run: func(cmd *cobra.Command, args []string) {
 		// If a cluster name is passed directly, activate it without prompting.
 		if len(args) == 1 {
@@ -75,8 +77,8 @@ func selectCluster(clusters []string) (string, error) {
 }
 
 func Execute() {
+	// Cobra already prints the error to stderr; just set the exit code.
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
 		os.Exit(1)
 	}
 }

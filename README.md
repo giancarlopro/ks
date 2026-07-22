@@ -25,6 +25,46 @@ The `ks` CLI provides the following commands:
 - `ks activate <cluster-name>`: Activate a Kubernetes cluster, setting the `KUBECONFIG` environment variable to point to the selected cluster's configuration file.
 - `ks set-default <cluster-name>`: Set a default Kubernetes cluster, creating a symbolic link to the default `kubectl` config file.
 - `ks zsh-integration`: Set up Zsh and Oh-My-Zsh integration to read the `.ksconfig` file in a folder and set the cluster accordingly.
+- `ks shell-init [shell]`: Print a set of handy `kubectl` aliases/functions for the given shell (`bash`, `zsh`, `powershell`, or `cmd`). The shell is auto-detected when omitted.
+
+## kubectl Aliases
+
+`ks shell-init` emits a curated set of `kubectl` shortcuts for your shell:
+
+| Alias | Expands to |
+| --- | --- |
+| `kg` | `kubectl get` |
+| `kd` | `kubectl describe` |
+| `krrd` | `kubectl rollout restart deployment` |
+| `krrs` | `kubectl rollout restart statefulset` |
+| `ktn` | `kubectl top node` |
+| `kdn` | `kubectl describe node` |
+| `kl` | `kubectl logs` |
+| `klf` | `kubectl logs -f` |
+| `cns [namespace]` | Switch the current namespace (falls back to an `fzf` picker when no namespace is given) |
+
+To load them every session, add the appropriate line to your shell startup file:
+
+```sh
+# bash (~/.bashrc)
+eval "$(ks shell-init bash)"
+
+# zsh (~/.zshrc)
+eval "$(ks shell-init zsh)"
+```
+
+```powershell
+# PowerShell ($PROFILE)
+ks shell-init powershell | Out-String | Invoke-Expression
+```
+
+```bat
+:: cmd.exe — write the doskey macros and load them on startup via AutoRun
+ks shell-init cmd > "%USERPROFILE%\ks-aliases.cmd"
+reg add "HKCU\Software\Microsoft\Command Processor" /v AutoRun /d "%USERPROFILE%\ks-aliases.cmd" /f
+```
+
+> On `cmd.exe`, `cns` requires an explicit namespace argument, since `doskey` cannot run the `fzf` picker.
 
 ## Zsh and Oh-My-Zsh Integration
 

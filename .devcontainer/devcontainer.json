@@ -1,5 +1,33 @@
 {
+  "name": "ks sandbox",
+  "build": { "dockerfile": "Dockerfile", "context": "." },
+  "workspaceFolder": "/workspace",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind",
+  // init-firewall.sh writes iptables rules, so it needs both capabilities.
+  "runArgs": ["--cap-add=NET_ADMIN", "--cap-add=NET_RAW"],
+  "remoteUser": "gian",
+  "mounts": [
+    // Read-write, so Claude can write back a refreshed OAuth token.
+    "source=${localEnv:HOME}/.claude,target=/home/gian/.claude,type=bind",
+    // ~/.claude/skills is a host symlink to this path. Mount it at the same
+    // path, or the link dangles and the host skills vanish in the container.
+    "source=/home/gian/skills/skills,target=/home/gian/skills/skills,type=bind"
+  ],
+  "customizations": {
+    "vscode": {
+      "extensions": ["anthropic.claude-code", "golang.go"],
+      "settings": {
+        // The first key unlocks bypass mode. The second selects it for new
+        // conversations. One without the other still prompts.
+        "claudeCode.allowDangerouslySkipPermissions": true,
+        "claudeCode.initialPermissionMode": "bypassPermissions"
+      }
+    }
+  },
   "tasks": {
     "test": "go mod tidy && go test -v ./... && go test -v -tags=integration ./... && go test -v -tags=acceptance ./..."
-  }
+  },
+  "postCreateCommand": "sudo npm install -g @anthropic-ai/claude-code && sudo install -m 0755 .devcontainer/init-firewall.sh .devcontainer/sandbox-firewall-off .devcontainer/sandbox-check /usr/local/bin/ && for f in $HOME/.bashrc $HOME/.zshrc; do grep -qs -- '--dangerously-skip-permissions' \"$f\" || echo \"alias claude='claude --dangerously-skip-permissions'\" >> \"$f\"; done",
+  // Rules do not survive a restart, so the firewall runs on every start.
+  "postStartCommand": "sudo /usr/local/bin/init-firewall.sh"
 }

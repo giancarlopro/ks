@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Drop the firewall until the container restarts.
+#
+# Use it for a one-off task the allowlist cannot cover, such as pulling an image
+# whose layers come from a CDN. Restart the container to get the rules back, or
+# run init-firewall.sh again.
+set -euo pipefail
+
+iptables -P INPUT ACCEPT
+iptables -P FORWARD ACCEPT
+iptables -P OUTPUT ACCEPT
+iptables -F
+iptables -X
+
+echo "firewall down. restart the container to bring it back."

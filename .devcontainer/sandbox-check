@@ -1,0 +1,160 @@
+#!/usr/bin/env bash
+# Check the sandbox from inside it. Run it by hand, after the container opens.
+#
+# Every assertion here is a fault that has happened. The check names the part
+# that is broken, so a broken sandbox costs one message instead of a hunt.
+#
+# It is not run by postStartCommand. The firewall is.
+set -uo pipefail
+
+FIREWALL=${FIREWALL:-/usr/local/bin/init-firewall.sh}
+pass=0
+fail=0
+skipped=0
+
+ok()   { printf 'ok    %s\n' "$1"; pass=$((pass + 1)); }
+bad()  { printf 'FAIL  %s\n' "$1"; fail=$((fail + 1)); }
+skip() { printf 'skip  %s\n' "$1"; skipped=$((skipped + 1)); }
+
+# curl exit codes that mean the host answered. TLS and HTTP faults are not this
+# script's business: they prove the connection was made. 7 and 28 are the
+# firewall dropping the packets.
+reaches() {
+  local code=0
+  curl -sS -o /dev/null --max-time 8 "https://$1" > /dev/null 2>&1 || code=$?
+  case $code in
+    0 | 22 | 35 | 52 | 56 | 60) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+allowed_hosts() {
+  [[ -r $FIREWALL ]] || return 1
+  awk '/^ALLOWED_DOMAINS=\(/ { f = 1; next } f && /^\)/ { exit } f' "$FIREWALL" \
+    | sed 's/#.*//' | tr -d ' \t' | grep -v '^$'
+}
+
+# 1. The CLI.
+if version=$(claude --version 2>/dev/null); then
+  ok "claude cli: ${version}"
+else
+  bad "claude cli does not answer --version. postCreateCommand did not install it"
+fi
+
+# 2. The bypass alias. The extension has its own settings keys, so the shell is
+#    the half that a missing alias breaks.
+if grep -rqs -- '--dangerously-skip-permissions' "$HOME/.bashrc" "$HOME/.zshrc" "$HOME/.profile"; then
+  ok "bypass alias is in the shell profile"
+else
+  bad "no bypass alias in the shell profile. the shell will ask for permission"
+fi
+
+# 3. Credentials. A read-only mount forces a login when the token expires.
+creds="$HOME/.claude/.credentials.json"
+if [[ ! -e $creds ]]; then
+  bad "${creds} is missing. the mount did not arrive"
+elif [[ ! -r $creds ]]; then
+  bad "${creds} is not readable by $(id -un)"
+elif [[ ! -w $creds ]]; then
+  bad "${creds} is not writable. a token refresh will fail"
+else
+  ok "credentials are readable and writable"
+fi
+
+# 4. Symlinks. A link under ~/.claude that points at an absolute host path
+#    dangles unless devcontainer.json mounts that path at the same path here.
+#    This is what makes host skills vanish inside the container.
+dangling=0
+while IFS= read -r link; do
+  if [[ ! -e $link ]]; then
+    bad "${link} does not resolve. mount $(readlink "$link") at its own path"
+    dangling=$((dangling + 1))
+  fi
+done < <(find "$HOME/.claude" -maxdepth 1 -type l 2>/dev/null)
+if [[ $dangling -eq 0 ]]; then
+  ok "every symlink under ~/.claude resolves"
+fi
+
+# 5. Root and bypass mode. Claude Code refuses bypass mode as uid 0 unless
+#    IS_SANDBOX is 1.
+if [[ $(id -u) -eq 0 ]]; then
+  if [[ ${IS_SANDBOX:-} == 1 ]]; then
+    ok "running as root with IS_SANDBOX=1"
+  else
+    bad "running as root without IS_SANDBOX=1. bypass mode will refuse to start"
+  fi
+elif [[ -n ${IS_SANDBOX:-} ]]; then
+  bad "IS_SANDBOX is set for a non-root user. remove it from remoteEnv"
+else
+  ok "running as $(id -un), so IS_SANDBOX is not needed"
+fi
+
+# 6. A host that is not allowlisted. This is the proof that the firewall is up.
+if [[ ! -r $FIREWALL ]]; then
+  skip "no firewall in this container, so egress is open"
+else
+  blocked=example.com
+  if allowed_hosts | grep -qx "$blocked"; then
+    blocked=example.net
+  fi
+  if reaches "$blocked"; then
+    bad "${blocked} answered, so the firewall is down. run: sudo ${FIREWALL}"
+  else
+    ok "${blocked} is refused, so the firewall is up"
+  fi
+fi
+
+# 7. Every allowlisted host. A host missing from the list fails later as a dial
+#    timeout inside a build, which names nothing.
+if ! hosts=$(allowed_hosts) || [[ -z $hosts ]]; then
+  skip "cannot read the allowlist from ${FIREWALL}"
+else
+  unreachable=0
+  while IFS= read -r host; do
+    # A name with no A record is a dead entry. init-firewall.sh resolves the list
+    # once and adds nothing for it, so the firewall never allowed it. That is a
+    # different fault from a host the firewall drops.
+    if [[ -z $(dig +short A "$host" 2> /dev/null) ]]; then
+      bad "${host} does not resolve, so its allowlist entry does nothing"
+      unreachable=$((unreachable + 1))
+    elif ! reaches "$host"; then
+      bad "${host} is on the allowlist and does not answer"
+      unreachable=$((unreachable + 1))
+    fi
+  done <<< "$hosts"
+  if [[ $unreachable -eq 0 ]]; then
+    ok "all $(wc -l <<< "$hosts") allowlisted hosts answer"
+  fi
+fi
+
+# 8. The docker daemon, when this container has one.
+if ! command -v dockerd > /dev/null 2>&1; then
+  skip "no docker daemon in this container"
+else
+  if docker info > /dev/null 2>&1; then
+    ok "docker daemon answers"
+
+    # The firewall flushes every chain, including the DOCKER chain the daemon
+    # creates at startup. Publishing a port then fails with a message that names
+    # no chain. Restart the daemon after the firewall runs.
+    if [[ $(id -u) -eq 0 ]]; then
+      ipt=(iptables)
+    elif sudo -n true 2> /dev/null; then
+      ipt=(sudo iptables)
+    else
+      ipt=()
+    fi
+    if [[ ${#ipt[@]} -eq 0 ]]; then
+      skip "cannot read the iptables chains without a password"
+    elif "${ipt[@]}" -L DOCKER -n > /dev/null 2>&1; then
+      ok "the DOCKER chain is present, so publishing a port works"
+    else
+      bad "the DOCKER chain is gone. the firewall flushed it: restart the daemon"
+    fi
+  else
+    skip "docker daemon is not running. start it with start-docker"
+  fi
+fi
+
+printf '\n%d ok, %d failed, %d skipped\n' "$pass" "$fail" "$skipped"
+[[ $fail -eq 0 ]]

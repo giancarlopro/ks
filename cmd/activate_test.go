@@ -6,84 +6,130 @@ import (
 	"os/exec"
 	"path/filepath"
 	"testing"
+
+	"github.com/giancarlopro/ks/config"
+	"gopkg.in/yaml.v2"
 )
 
-func TestActivateCluster(t *testing.T) {
-	// Set up test environment
-	homeDir := os.Getenv("HOME")
-	configDir := filepath.Join(homeDir, ".config", "ks", "clusters")
-	clusterName := "test-cluster"
-	configFile := filepath.Join(configDir, clusterName+".yaml")
+// sampleKubeconfig is a kubeconfig with one context. The context name does not
+// match the registered name, so a test can prove the rename.
+func sampleKubeconfig(name string) string {
+	return fmt.Sprintf(`apiVersion: v1
+kind: Config
+preferences: {}
+clusters:
+- cluster:
+    server: https://%[1]s.example.com
+  name: gke_project_region_%[1]s
+contexts:
+- context:
+    cluster: gke_project_region_%[1]s
+    namespace: default
+    user: gke_project_region_%[1]s
+  name: gke_project_region_%[1]s
+current-context: gke_project_region_%[1]s
+users:
+- name: gke_project_region_%[1]s
+  user:
+    token: %[1]s-token
+`, name)
+}
 
-	// Create a temporary configuration file
-	err := os.MkdirAll(configDir, 0755)
-	if err != nil {
+// registerCluster writes a source kubeconfig for a cluster.
+func registerCluster(t *testing.T, name string) {
+	t.Helper()
+	if err := os.MkdirAll(filepath.Dir(clusterConfigFile(name)), 0755); err != nil {
 		t.Fatalf("Error creating config directory: %v", err)
 	}
-	defer os.RemoveAll(configDir)
-
-	file, err := os.Create(configFile)
-	if err != nil {
+	if err := os.WriteFile(clusterConfigFile(name), []byte(sampleKubeconfig(name)), 0600); err != nil {
 		t.Fatalf("Error creating config file: %v", err)
 	}
-	defer file.Close()
+}
 
-	// Set the KUBECONFIG environment variable
-	os.Setenv("KUBECONFIG", configFile)
-
-	// Run the activateCluster function
-	err = activateCluster(clusterName)
+// currentContextOf reads current-context from a kubeconfig file.
+func currentContextOf(t *testing.T, path string) string {
+	t.Helper()
+	data, err := os.ReadFile(path)
 	if err != nil {
-		t.Errorf("Error activating cluster: %v", err)
+		t.Fatalf("Error reading %s: %v", path, err)
+	}
+	var doc struct {
+		CurrentContext string `yaml:"current-context"`
+	}
+	if err := yaml.Unmarshal(data, &doc); err != nil {
+		t.Fatalf("Error parsing %s: %v", path, err)
+	}
+	return doc.CurrentContext
+}
+
+func TestActivateCluster(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	// Spawn a shell that exits at once, so the test does not wait for input.
+	t.Setenv("SHELL", "/bin/true")
+
+	registerCluster(t, "test-cluster")
+	registerCluster(t, "other-cluster")
+
+	if err := activateCluster("test-cluster"); err != nil {
+		t.Fatalf("Error activating cluster: %v", err)
 	}
 
-	// Verify that the KUBECONFIG environment variable is set correctly
-	expectedKubeconfig := configFile
-	actualKubeconfig := os.Getenv("KUBECONFIG")
-	if actualKubeconfig != expectedKubeconfig {
-		t.Errorf("KUBECONFIG environment variable not set correctly. Expected: %s, Got: %s", expectedKubeconfig, actualKubeconfig)
+	// Activation builds the merged kubeconfig and activates this cluster.
+	merged := config.GeneratedConfigFile("test-cluster")
+	if got := currentContextOf(t, merged); got != "test-cluster" {
+		t.Errorf("Expected current-context test-cluster, got %q", got)
+	}
+
+	// Every registered cluster gets a merged kubeconfig of its own.
+	if _, err := os.Stat(config.GeneratedConfigFile("other-cluster")); err != nil {
+		t.Errorf("Expected a merged config for other-cluster: %v", err)
+	}
+}
+
+func TestActivateClusterUnknown(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+
+	if err := activateCluster("missing"); err == nil {
+		t.Error("Expected an error for a cluster that does not exist")
+	}
+}
+
+func TestActivateClusterBroken(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	t.Setenv("SHELL", "/bin/true")
+
+	registerCluster(t, "test-cluster")
+	if err := os.WriteFile(clusterConfigFile("broken"), []byte("\tnot: [valid"), 0600); err != nil {
+		t.Fatalf("Error creating config file: %v", err)
+	}
+
+	// The broken cluster fails on its own.
+	if err := activateCluster("broken"); err == nil {
+		t.Error("Expected an error for a cluster that does not parse")
+	}
+
+	// It does not block the clusters that are fine.
+	if err := activateCluster("test-cluster"); err != nil {
+		t.Errorf("Expected the healthy cluster to activate: %v", err)
 	}
 }
 
 func TestActivateClusterCommand(t *testing.T) {
-	// Set up test environment
-	homeDir := os.Getenv("HOME")
-	configDir := filepath.Join(homeDir, ".config", "ks", "clusters")
-	clusterName := "test-cluster"
-	configFile := filepath.Join(configDir, clusterName+".yaml")
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	registerCluster(t, "test-cluster")
 
-	// Create a temporary configuration file
-	err := os.MkdirAll(configDir, 0755)
-	if err != nil {
-		t.Fatalf("Error creating config directory: %v", err)
-	}
-	defer os.RemoveAll(configDir)
-
-	file, err := os.Create(configFile)
-	if err != nil {
-		t.Fatalf("Error creating config file: %v", err)
-	}
-	defer file.Close()
-
-	// Set the KUBECONFIG environment variable
-	os.Setenv("KUBECONFIG", configFile)
-
-	// Run the activate command
-	cmd := exec.Command("go", "run", ".", "activate", clusterName)
-	cmd.Env = append(os.Environ(), fmt.Sprintf("KUBECONFIG=%s", configFile))
-	cmd.Stdin = os.Stdin
+	cmd := exec.Command("go", "run", ".", "activate", "test-cluster")
+	cmd.Dir = ".."
+	cmd.Env = append(os.Environ(), "HOME="+home, "SHELL=/bin/true")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
-	err = cmd.Run()
-	if err != nil {
-		t.Errorf("Error running activate command: %v", err)
+	if err := cmd.Run(); err != nil {
+		t.Fatalf("Error running activate command: %v", err)
 	}
 
-	// Verify that the KUBECONFIG environment variable is set correctly
-	expectedKubeconfig := configFile
-	actualKubeconfig := os.Getenv("KUBECONFIG")
-	if actualKubeconfig != expectedKubeconfig {
-		t.Errorf("KUBECONFIG environment variable not set correctly. Expected: %s, Got: %s", expectedKubeconfig, actualKubeconfig)
+	if got := currentContextOf(t, config.GeneratedConfigFile("test-cluster")); got != "test-cluster" {
+		t.Errorf("Expected current-context test-cluster, got %q", got)
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -27,16 +28,22 @@ var zshIntegrationCmd = &cobra.Command{
 		}
 
 		// Read the .ksconfig file
-		cluster, err := os.ReadFile(ksconfigPath)
+		content, err := os.ReadFile(ksconfigPath)
 		if err != nil {
 			fmt.Println("Error reading .ksconfig file:", err)
 			return
 		}
+		cluster := strings.TrimSpace(string(content))
 
-		// Set the KUBECONFIG environment variable
-		configFile := clusterConfigFile(string(cluster))
-		if _, err := os.Stat(configFile); os.IsNotExist(err) {
-			fmt.Println("Cluster configuration file not found:", string(cluster))
+		if _, err := os.Stat(clusterConfigFile(cluster)); os.IsNotExist(err) {
+			fmt.Println("Cluster configuration file not found:", cluster)
+			return
+		}
+
+		// Set the KUBECONFIG environment variable to the merged kubeconfig.
+		configFile, err := mergedConfigFile(cluster)
+		if err != nil {
+			fmt.Println("Error building merged config:", err)
 			return
 		}
 

@@ -2,34 +2,43 @@ package cmd
 
 import (
 	"os"
-	"path/filepath"
 	"runtime"
 	"testing"
+
+	"github.com/giancarlopro/ks/config"
 )
 
 func TestSetDefaultCluster(t *testing.T) {
 	// Point HOME at a temporary directory so the cluster config lives where
 	// setDefaultCluster expects it.
 	tempDir := t.TempDir()
-	os.Setenv("HOME", tempDir)
+	t.Setenv("HOME", tempDir)
 
-	// Create a sample cluster configuration file in the real config location.
 	clusterName := "test-cluster"
-	configFile := clusterConfigFile(clusterName)
-	if err := os.MkdirAll(filepath.Dir(configFile), 0755); err != nil {
-		t.Fatalf("Error creating config directory: %v", err)
-	}
-	if err := os.WriteFile(configFile, []byte("sample config"), 0644); err != nil {
-		t.Fatalf("Error creating config file: %v", err)
-	}
+	registerCluster(t, clusterName)
 
-	// Call the setDefaultCluster function
-	err := setDefaultCluster(clusterName)
-	if err != nil {
+	if err := setDefaultCluster(clusterName); err != nil {
 		t.Fatalf("Error setting default cluster: %v", err)
 	}
 
-	defaultConfigFile := filepath.Join(tempDir, ".kube", "config")
+	// The default config points at the merged kubeconfig, so tools outside a
+	// ks shell see every registered context.
+	mergedFile := config.GeneratedConfigFile(clusterName)
+	defaultConfigFile := config.DefaultConfigFile()
+
+	if got := currentContextOf(t, mergedFile); got != clusterName {
+		t.Errorf("Expected current-context %s, got %q", clusterName, got)
+	}
+
+	// set-default records the choice, so a later rebuild can refresh a copied
+	// default config.
+	record, err := os.ReadFile(config.DefaultRecordFile())
+	if err != nil {
+		t.Fatalf("Error reading default record: %v", err)
+	}
+	if string(record) != clusterName+"\n" {
+		t.Errorf("Expected the record to name %s, got %q", clusterName, string(record))
+	}
 
 	// On platforms that support symlinks, verify the link target. Otherwise
 	// (e.g. Windows without privileges) verify the file was copied.
@@ -38,8 +47,8 @@ func TestSetDefaultCluster(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Error reading symbolic link: %v", err)
 		}
-		if linkTarget != configFile {
-			t.Errorf("Expected symbolic link target to be %s, but got %s", configFile, linkTarget)
+		if linkTarget != mergedFile {
+			t.Errorf("Expected symbolic link target to be %s, but got %s", mergedFile, linkTarget)
 		}
 		return
 	}
@@ -48,7 +57,19 @@ func TestSetDefaultCluster(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error reading default config: %v", err)
 	}
-	if string(content) != "sample config" {
-		t.Errorf("Expected default config content %q, but got %q", "sample config", string(content))
+	merged, err := os.ReadFile(mergedFile)
+	if err != nil {
+		t.Fatalf("Error reading merged config: %v", err)
+	}
+	if string(content) != string(merged) {
+		t.Error("Expected the default config to hold the merged config")
+	}
+}
+
+func TestSetDefaultClusterUnknown(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+
+	if err := setDefaultCluster("missing"); err == nil {
+		t.Error("Expected an error for a cluster that does not exist")
 	}
 }

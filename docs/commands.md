@@ -92,7 +92,9 @@ ks delete my-cluster
 
 ## ks activate
 
-Activate a Kubernetes cluster, setting the `KUBECONFIG` environment variable to point to the selected cluster's configuration file.
+Activate a Kubernetes cluster, setting the `KUBECONFIG` environment variable to point to the merged kubeconfig for that cluster.
+
+The merged kubeconfig holds a context for every registered cluster, named after the cluster. The selected cluster becomes the `current-context`. See [Merged kubeconfigs](configuration.md#merged-kubeconfigs).
 
 ### Usage
 
@@ -108,7 +110,9 @@ ks activate my-cluster
 
 ## ks set-default
 
-Set a default Kubernetes cluster, creating a symbolic link to the default `kubectl` config file.
+Set a default Kubernetes cluster, creating a symbolic link from the default `kubectl` config file to the merged kubeconfig for that cluster.
+
+On Windows, where symbolic links often need extra privileges, `ks` copies the file instead. It records the cluster name in `~/.config/ks/default`, so a later rebuild can refresh that copy.
 
 ### Usage
 

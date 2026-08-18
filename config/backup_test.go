@@ -9,7 +9,8 @@ import (
 
 func TestCreateBackup(t *testing.T) {
 	clusterName := "test-cluster"
-	configDir := filepath.Join(os.Getenv("HOME"), ".config", "ks", "clusters")
+	t.Setenv("HOME", t.TempDir())
+	configDir := ClustersDir()
 	configFile := filepath.Join(configDir, clusterName+".yaml")
 	backupDir := filepath.Join(configDir, "backups")
 	backupFile := filepath.Join(backupDir, clusterName+".yaml.bak")
@@ -35,13 +36,12 @@ func TestCreateBackup(t *testing.T) {
 		t.Fatalf("Backup file does not exist: %s", backupFile)
 	}
 
-	// Clean up
-	os.RemoveAll(configDir)
 }
 
 func TestRecoverFromBackup(t *testing.T) {
 	clusterName := "test-cluster"
-	configDir := filepath.Join(os.Getenv("HOME"), ".config", "ks", "clusters")
+	t.Setenv("HOME", t.TempDir())
+	configDir := ClustersDir()
 	configFile := filepath.Join(configDir, clusterName+".yaml")
 	backupDir := filepath.Join(configDir, "backups")
 	backupFile := filepath.Join(backupDir, clusterName+".yaml.bak")
@@ -71,6 +71,4 @@ func TestRecoverFromBackup(t *testing.T) {
 		t.Fatalf("Config file content does not match backup data")
 	}
 
-	// Clean up
-	os.RemoveAll(configDir)
 }

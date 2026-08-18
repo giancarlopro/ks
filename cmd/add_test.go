@@ -2,38 +2,24 @@ package cmd
 
 import (
 	"os"
-	"path/filepath"
+	"strings"
 	"testing"
 )
 
 func TestAddCommand(t *testing.T) {
-	// Set up test environment
-	homeDir := os.Getenv("HOME")
-	configDir := filepath.Join(homeDir, ".config", "ks", "clusters")
+	t.Setenv("HOME", t.TempDir())
+	// The add command opens an editor. `true` exits at once and changes
+	// nothing, so the template is what gets saved.
+	t.Setenv("EDITOR", "true")
+
 	clusterName := "test-cluster"
-	configFile := filepath.Join(configDir, clusterName+".yaml")
+	addCmd.Run(addCmd, []string{clusterName})
 
-	// Create the directory if it does not exist
-	err := os.MkdirAll(configDir, 0755)
+	content, err := os.ReadFile(clusterConfigFile(clusterName))
 	if err != nil {
-		t.Fatalf("Error creating config directory: %v", err)
+		t.Fatalf("Configuration file not created: %v", err)
 	}
-
-	// Clean up any existing test files
-	os.Remove(configFile)
-
-	// Run the add command
-	addCmd.SetArgs([]string{clusterName})
-	err = addCmd.Execute()
-	if err != nil {
-		t.Fatalf("Error executing add command: %v", err)
+	if !strings.Contains(string(content), "name: "+clusterName) {
+		t.Errorf("Expected the template to name the cluster, got:\n%s", content)
 	}
-
-	// Check if the configuration file was created
-	if _, err := os.Stat(configFile); os.IsNotExist(err) {
-		t.Fatalf("Configuration file not created: %s", configFile)
-	}
-
-	// Clean up test files
-	os.Remove(configFile)
 }

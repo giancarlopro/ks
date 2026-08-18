@@ -10,7 +10,8 @@ import (
 )
 
 func TestReadConfig(t *testing.T) {
-	configDir := filepath.Join(os.Getenv("HOME"), ".config", "ks", "clusters")
+	t.Setenv("HOME", t.TempDir())
+	configDir := ClustersDir()
 	configFile := filepath.Join(configDir, "test-cluster.yaml")
 
 	// Create the test configuration directory if it doesn't exist
@@ -49,12 +50,12 @@ func TestReadConfig(t *testing.T) {
 				Name: "test-user",
 				User: UserDetails{
 					Exec: ExecDetails{
-						APIVersion:        "client.authentication.k8s.io/v1beta1",
-						Args:              nil,
-						Command:           "test-command",
-						Env:               nil,
-						InstallHint:       "test-install-hint",
-						InteractiveMode:   "IfAvailable",
+						APIVersion:         "client.authentication.k8s.io/v1beta1",
+						Args:               nil,
+						Command:            "test-command",
+						Env:                nil,
+						InstallHint:        "test-install-hint",
+						InteractiveMode:    "IfAvailable",
 						ProvideClusterInfo: true,
 					},
 				},
@@ -109,7 +110,8 @@ func TestReadConfig(t *testing.T) {
 }
 
 func TestWriteConfig(t *testing.T) {
-	configDir := filepath.Join(os.Getenv("HOME"), ".config", "ks", "clusters")
+	t.Setenv("HOME", t.TempDir())
+	configDir := ClustersDir()
 	configFile := filepath.Join(configDir, "test-cluster.yaml")
 
 	// Create the test configuration directory if it doesn't exist
@@ -148,12 +150,12 @@ func TestWriteConfig(t *testing.T) {
 				Name: "test-user",
 				User: UserDetails{
 					Exec: ExecDetails{
-						APIVersion:        "client.authentication.k8s.io/v1beta1",
-						Args:              nil,
-						Command:           "test-command",
-						Env:               nil,
-						InstallHint:       "test-install-hint",
-						InteractiveMode:   "IfAvailable",
+						APIVersion:         "client.authentication.k8s.io/v1beta1",
+						Args:               nil,
+						Command:            "test-command",
+						Env:                nil,
+						InstallHint:        "test-install-hint",
+						InteractiveMode:    "IfAvailable",
 						ProvideClusterInfo: true,
 					},
 				},
@@ -238,12 +240,12 @@ func TestValidateConfig(t *testing.T) {
 				Name: "test-user",
 				User: UserDetails{
 					Exec: ExecDetails{
-						APIVersion:        "client.authentication.k8s.io/v1beta1",
-						Args:              nil,
-						Command:           "test-command",
-						Env:               nil,
-						InstallHint:       "test-install-hint",
-						InteractiveMode:   "IfAvailable",
+						APIVersion:         "client.authentication.k8s.io/v1beta1",
+						Args:               nil,
+						Command:            "test-command",
+						Env:                nil,
+						InstallHint:        "test-install-hint",
+						InteractiveMode:    "IfAvailable",
 						ProvideClusterInfo: true,
 					},
 				},

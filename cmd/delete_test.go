@@ -2,39 +2,29 @@ package cmd
 
 import (
 	"os"
-	"path/filepath"
 	"testing"
 )
 
 func TestDeleteCommand(t *testing.T) {
-	// Set up test environment
-	homeDir := os.Getenv("HOME")
-	configDir := filepath.Join(homeDir, ".config", "ks", "clusters")
+	t.Setenv("HOME", t.TempDir())
+
 	clusterName := "test-cluster"
-	configFile := filepath.Join(configDir, clusterName+".yaml")
+	registerCluster(t, clusterName)
 
-	// Create a temporary configuration file
-	err := os.MkdirAll(configDir, 0755)
-	if err != nil {
-		t.Fatalf("Error creating config directory: %v", err)
+	deleteCmd.Run(deleteCmd, []string{clusterName})
+
+	if _, err := os.Stat(clusterConfigFile(clusterName)); !os.IsNotExist(err) {
+		t.Fatalf("Configuration file not deleted: %s", clusterConfigFile(clusterName))
 	}
-	defer os.RemoveAll(configDir)
+}
 
-	file, err := os.Create(configFile)
-	if err != nil {
-		t.Fatalf("Error creating config file: %v", err)
-	}
-	defer file.Close()
+func TestDeleteCommandUnknownCluster(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
 
-	// Run the delete command
-	deleteCmd.SetArgs([]string{clusterName})
-	err = deleteCmd.Execute()
-	if err != nil {
-		t.Fatalf("Error executing delete command: %v", err)
-	}
+	// A cluster that does not exist is reported, not created.
+	deleteCmd.Run(deleteCmd, []string{"missing"})
 
-	// Check if the configuration file was deleted
-	if _, err := os.Stat(configFile); !os.IsNotExist(err) {
-		t.Fatalf("Configuration file not deleted: %s", configFile)
+	if _, err := os.Stat(clusterConfigFile("missing")); !os.IsNotExist(err) {
+		t.Error("Expected no configuration file")
 	}
 }

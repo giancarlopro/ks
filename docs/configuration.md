@@ -113,6 +113,41 @@ users:
 
 The `ks` CLI validates the YAML configuration files when they are read or written. If a file is invalid or corrupted, a clear error message will be displayed, indicating the issue and the file path. Suggestions for fixing the issue will also be provided, such as checking the file format or using the `ks edit` command to correct the configuration.
 
+## Merged kubeconfigs
+
+The files in `~/.config/ks/clusters/` are the ones you write. `ks` also builds one **merged kubeconfig** for each of them, in `~/.config/ks/generated/`. A merged kubeconfig holds a context for every registered cluster. `ks activate` and `ks set-default` point at these files, not at the files you write.
+
+Do not edit a merged kubeconfig by hand. Every rebuild overwrites it. Use `ks edit <cluster-name>` instead.
+
+### Naming
+
+Each context, cluster, and user in a merged kubeconfig takes the name of the file that registered it. A file named `prod.yaml` therefore produces a context named `prod`, whatever the provider called it.
+
+A registered file with several contexts keeps all of them:
+
+- The context named by `current-context` takes the registered name.
+- Every other context takes `<cluster-name>/<original-context-name>`.
+- When `current-context` is missing or names an unknown context, every context takes the second form.
+
+Two contexts that share one cluster produce one cluster entry each, with the same content and different names.
+
+### Rebuilds
+
+`ks activate`, `ks <cluster-name>`, `ks set-default`, and `ks zsh-integration` rebuild every merged kubeconfig. A rebuild:
+
+- reads every `.yaml` file in `~/.config/ks/clusters/`, so a file you add by hand needs no registration step;
+- deletes any merged kubeconfig whose source file is gone;
+- keeps the namespace of each context from the previous version of the same file, so a namespace set with `cns` or `kubectl config set-context` survives;
+- skips a source file that does not parse, and prints `ks: skipping <path>: <reason>` on standard error.
+
+`ks activate` fails only when the cluster you activate is itself unreadable, or holds no usable context.
+
+### Fields
+
+The merge copies every cluster, user, and context block through untouched. It rewrites only the names, the `cluster` and `user` references inside a context, and the `namespace`. Fields such as `client-certificate-data`, `token`, `insecure-skip-tls-verify`, and `proxy-url` therefore survive.
+
+Merged kubeconfigs hold the same credentials as the files you write. The directory takes mode `0700`, and each file takes mode `0600`.
+
 ## Backup and Recovery
 
 Before writing any changes to a YAML configuration file, the `ks` CLI creates a backup of the existing file. If an error occurs while reading or writing a file, the CLI will attempt to recover from the backup. The backup files are stored in the `~/.config/ks/clusters/backups` folder.

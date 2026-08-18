@@ -4,48 +4,38 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/giancarlopro/ks/config"
 )
 
 func TestZshIntegration(t *testing.T) {
-	// Create a temporary directory for testing
 	tempDir := t.TempDir()
+	t.Setenv("HOME", tempDir)
 
-	// Create a .ksconfig file in the temporary directory
-	ksconfigPath := filepath.Join(tempDir, ".ksconfig")
+	// A .ksconfig file names the cluster of a project directory. echo adds a
+	// newline, so the command must trim the name.
 	clusterName := "test-cluster"
-	err := os.WriteFile(ksconfigPath, []byte(clusterName), 0644)
-	if err != nil {
+	ksconfigPath := filepath.Join(tempDir, ".ksconfig")
+	if err := os.WriteFile(ksconfigPath, []byte(clusterName+"\n"), 0644); err != nil {
 		t.Fatalf("Error creating .ksconfig file: %v", err)
 	}
 
-	// Create a cluster configuration file in the temporary directory
-	configDir := filepath.Join(tempDir, ".config", "ks", "clusters")
-	err = os.MkdirAll(configDir, 0755)
-	if err != nil {
-		t.Fatalf("Error creating config directory: %v", err)
-	}
-	configFile := filepath.Join(configDir, clusterName+".yaml")
-	err = os.WriteFile(configFile, []byte("test-config"), 0644)
-	if err != nil {
-		t.Fatalf("Error creating cluster configuration file: %v", err)
-	}
+	registerCluster(t, clusterName)
 
-	// Set the current working directory to the temporary directory
-	err = os.Chdir(tempDir)
+	workingDir, err := os.Getwd()
 	if err != nil {
+		t.Fatalf("Error reading working directory: %v", err)
+	}
+	if err := os.Chdir(tempDir); err != nil {
 		t.Fatalf("Error changing directory: %v", err)
 	}
+	defer os.Chdir(workingDir)
 
-	// Run the zsh-integration command
-	err = zshIntegrationCmd.RunE(zshIntegrationCmd, []string{})
-	if err != nil {
-		t.Fatalf("Error running zsh-integration command: %v", err)
-	}
+	zshIntegrationCmd.Run(zshIntegrationCmd, []string{})
 
-	// Check if the KUBECONFIG environment variable is set correctly
-	expectedKubeconfig := configFile
-	actualKubeconfig := os.Getenv("KUBECONFIG")
-	if actualKubeconfig != expectedKubeconfig {
-		t.Errorf("KUBECONFIG environment variable not set correctly. Expected: %s, Got: %s", expectedKubeconfig, actualKubeconfig)
+	// KUBECONFIG points at the merged kubeconfig, not at the source file.
+	expected := config.GeneratedConfigFile(clusterName)
+	if actual := os.Getenv("KUBECONFIG"); actual != expected {
+		t.Errorf("KUBECONFIG environment variable not set correctly. Expected: %s, Got: %s", expected, actual)
 	}
 }

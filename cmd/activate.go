@@ -26,12 +26,17 @@ func init() {
 }
 
 func activateCluster(cluster string) error {
-	configFile := clusterConfigFile(cluster)
-
-	if _, err := os.Stat(configFile); err != nil {
+	if _, err := os.Stat(clusterConfigFile(cluster)); err != nil {
 		if os.IsNotExist(err) {
 			return fmt.Errorf("cluster %q does not exist", cluster)
 		}
+		return err
+	}
+
+	// KUBECONFIG points at the merged kubeconfig, not at the source file. The
+	// merged file holds every registered context and activates this cluster.
+	configFile, err := mergedConfigFile(cluster)
+	if err != nil {
 		return err
 	}
 

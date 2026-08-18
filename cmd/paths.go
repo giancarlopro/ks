@@ -17,6 +17,17 @@ func clusterConfigFile(name string) string {
 	return config.ClusterConfigFile(name)
 }
 
+// mergedConfigFile rebuilds every merged kubeconfig and returns the one for the
+// given cluster. A merged kubeconfig holds the contexts of every registered
+// cluster, so tools such as helmfile can select any of them by name.
+func mergedConfigFile(name string) (string, error) {
+	result, err := config.Rebuild(os.Stderr)
+	if err != nil {
+		return "", err
+	}
+	return result.Path(name)
+}
+
 // defaultShell returns the shell to spawn for an interactive session. It honors
 // the user's SHELL on Unix and ComSpec on Windows, falling back to sensible
 // per-platform defaults.

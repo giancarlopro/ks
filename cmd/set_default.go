@@ -2,9 +2,7 @@ package cmd
 
 import (
 	"fmt"
-	"io"
 	"os"
-	"path/filepath"
 	"runtime"
 
 	"github.com/giancarlopro/ks/config"
@@ -29,15 +27,27 @@ func init() {
 }
 
 func setDefaultCluster(cluster string) error {
-	configFile := clusterConfigFile(cluster)
-	kubeDir := filepath.Join(config.HomeDir(), ".kube")
-	defaultConfigFile := filepath.Join(kubeDir, "config")
+	kubeDir := config.KubeDir()
+	defaultConfigFile := config.DefaultConfigFile()
 
 	// Make sure the cluster we're pointing at actually exists.
-	if _, err := os.Stat(configFile); err != nil {
+	if _, err := os.Stat(clusterConfigFile(cluster)); err != nil {
 		if os.IsNotExist(err) {
 			return fmt.Errorf("cluster %q does not exist", cluster)
 		}
+		return err
+	}
+
+	// Record the choice before rebuilding, so a later rebuild can refresh the
+	// default config on systems that copy it instead of linking it.
+	if err := config.WriteDefaultRecord(cluster); err != nil {
+		return err
+	}
+
+	// Point the default config at the merged kubeconfig, so tools outside a ks
+	// shell see every registered context.
+	configFile, err := mergedConfigFile(cluster)
+	if err != nil {
 		return err
 	}
 
@@ -59,30 +69,10 @@ func setDefaultCluster(cluster string) error {
 		if runtime.GOOS != "windows" {
 			return fmt.Errorf("failed to create symbolic link: %w", err)
 		}
-		if err := copyFile(configFile, defaultConfigFile); err != nil {
+		if err := config.CopyFile(configFile, defaultConfigFile); err != nil {
 			return fmt.Errorf("failed to copy config file: %w", err)
 		}
 	}
 
 	return nil
-}
-
-// copyFile copies the contents of src to dst, creating or truncating dst.
-func copyFile(src, dst string) error {
-	in, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer in.Close()
-
-	out, err := os.Create(dst)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-
-	if _, err := io.Copy(out, in); err != nil {
-		return err
-	}
-	return out.Close()
 }

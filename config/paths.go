@@ -51,3 +51,9 @@ func KubeDir() string {
 func DefaultConfigFile() string {
 	return filepath.Join(KubeDir(), "config")
 }
+
+// KubeBackupFile returns the path where `ks import` moves the default kubectl
+// configuration, and where `ks restore-kubeconfig` reads it back from.
+func KubeBackupFile() string {
+	return DefaultConfigFile() + ".bkp"
+}

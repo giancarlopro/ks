@@ -18,6 +18,8 @@ The `ks` CLI provides the following commands:
 
 - `ks`: Shows a list of clusters that you can select to enter an interactive shell with the correct environment variables.
 - `ks <cluster-name>`: Activate a cluster directly, without opening the selector, entering an interactive shell with the correct environment variables.
+- `ks import [path...]`: Import a kubeconfig that `ks` does not manage, registering one cluster for each context.
+- `ks restore-kubeconfig`: Undo the move that `ks import` made to the default `kubectl` config.
 - `ks add <cluster-name>`: Register a new Kubernetes cluster with the given name and open the default editor for the user to set the content of the file.
 - `ks list`: List all registered Kubernetes clusters.
 - `ks get <cluster-name>`: Get the details of a specific Kubernetes cluster.
@@ -27,6 +29,34 @@ The `ks` CLI provides the following commands:
 - `ks set-default <cluster-name>`: Set a default Kubernetes cluster, creating a symbolic link from the default `kubectl` config file to the merged kubeconfig for that cluster.
 - `ks zsh-integration`: Set up Zsh and Oh-My-Zsh integration to read the `.ksconfig` file in a folder and set the cluster accordingly.
 - `ks shell-init [shell]`: Print a set of handy `kubectl` aliases/functions for the given shell (`bash`, `zsh`, `powershell`, or `cmd`). The shell is auto-detected when omitted.
+
+## Starting from an existing kubeconfig
+
+If you already have a kubeconfig, `ks import` registers everything in it:
+
+```sh
+ks import
+```
+
+Import reads `KUBECONFIG` when it is set, and `~/.kube/config` otherwise. Pass paths to read other files instead. For each context it asks for a short name, and suggests one:
+
+```
+gke_acme_us-east1_prod
+  server: https://prod.example.com
+Name [prod] (Enter accepts, - skips):
+```
+
+Press Enter to take the suggestion, type a name to replace it, or type `-` to skip that context. `ks import --yes` takes every suggestion without asking. `ks import --as work` registers the whole kubeconfig as one cluster named `work` instead of splitting it.
+
+Import then offers to take over the default `kubectl` config. It moves `~/.kube/config` to `~/.kube/config.bkp`, and points `~/.kube/config` at the cluster that held your active context, so `kubectl` keeps working on the same cluster. It asks first, and `--yes` accepts.
+
+To undo that move:
+
+```sh
+ks restore-kubeconfig
+```
+
+Restore puts `~/.kube/config.bkp` back. The clusters that import registered stay registered, so nothing is lost.
 
 ## Merged kubeconfig
 

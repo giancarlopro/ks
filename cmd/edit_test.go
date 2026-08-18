@@ -2,47 +2,29 @@ package cmd
 
 import (
 	"os"
-	"os/exec"
-	"path/filepath"
 	"testing"
 )
 
 func TestEditCluster(t *testing.T) {
-	// Set up test environment
-	homeDir := os.Getenv("HOME")
-	configDir := filepath.Join(homeDir, ".config", "ks", "clusters")
+	t.Setenv("HOME", t.TempDir())
+	// `true` stands in for an editor. It exits at once and changes nothing.
+	t.Setenv("EDITOR", "true")
+
 	clusterName := "test-cluster"
-	configFile := filepath.Join(configDir, clusterName+".yaml")
+	registerCluster(t, clusterName)
 
-	// Create a dummy config file
-	err := os.MkdirAll(configDir, 0755)
+	before, err := os.ReadFile(clusterConfigFile(clusterName))
 	if err != nil {
-		t.Fatalf("Error creating config directory: %v", err)
-	}
-	file, err := os.Create(configFile)
-	if err != nil {
-		t.Fatalf("Error creating config file: %v", err)
-	}
-	file.Close()
-
-	// Set the EDITOR environment variable to a dummy editor
-	os.Setenv("EDITOR", "true")
-
-	// Run the edit command
-	cmd := exec.Command("go", "run", ".", "edit", clusterName)
-	cmd.Env = append(os.Environ(), "EDITOR=true")
-	err = cmd.Run()
-	if err != nil {
-		t.Fatalf("Error running edit command: %v", err)
+		t.Fatalf("Error reading config file: %v", err)
 	}
 
-	// Clean up
-	err = os.Remove(configFile)
+	editCmd.Run(editCmd, []string{clusterName})
+
+	after, err := os.ReadFile(clusterConfigFile(clusterName))
 	if err != nil {
-		t.Fatalf("Error removing config file: %v", err)
+		t.Fatalf("Error reading config file: %v", err)
 	}
-	err = os.RemoveAll(configDir)
-	if err != nil {
-		t.Fatalf("Error removing config directory: %v", err)
+	if string(after) != string(before) {
+		t.Error("Expected an editor that changes nothing to leave the file alone")
 	}
 }

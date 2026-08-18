@@ -7,9 +7,9 @@ import (
 )
 
 func TestListClusters(t *testing.T) {
-	// Set up test environment
-	homeDir := os.Getenv("HOME")
-	configDir := filepath.Join(homeDir, ".config", "ks", "clusters")
+	t.Setenv("HOME", t.TempDir())
+
+	configDir := clustersDir()
 	clusterName1 := "test-cluster-1"
 	clusterName2 := "test-cluster-2"
 	configFile1 := filepath.Join(configDir, clusterName1+".yaml")
@@ -20,8 +20,6 @@ func TestListClusters(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error creating config directory: %v", err)
 	}
-	defer os.RemoveAll(configDir)
-
 	file1, err := os.Create(configFile1)
 	if err != nil {
 		t.Fatalf("Error creating config file: %v", err)

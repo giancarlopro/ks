@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"testing"
 
@@ -115,17 +114,17 @@ func TestActivateClusterBroken(t *testing.T) {
 }
 
 func TestActivateClusterCommand(t *testing.T) {
-	home := t.TempDir()
-	t.Setenv("HOME", home)
+	t.Setenv("HOME", t.TempDir())
+	t.Setenv("SHELL", "/bin/true")
 	registerCluster(t, "test-cluster")
 
-	cmd := exec.Command("go", "run", ".", "activate", "test-cluster")
-	cmd.Dir = ".."
-	cmd.Env = append(os.Environ(), "HOME="+home, "SHELL=/bin/true")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	// Run through the root command, so the test covers the cobra wiring. A
+	// subprocess is not used: `go run` would put its module cache under the
+	// temporary HOME, and the test could not clean that up.
+	rootCmd.SetArgs([]string{"activate", "test-cluster"})
+	t.Cleanup(func() { rootCmd.SetArgs(nil) })
 
-	if err := cmd.Run(); err != nil {
+	if err := rootCmd.Execute(); err != nil {
 		t.Fatalf("Error running activate command: %v", err)
 	}
 

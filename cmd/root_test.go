@@ -1,26 +1,27 @@
 package cmd
 
 import (
-	"fmt"
-	"os"
-	"os/exec"
-	"path/filepath"
 	"testing"
+
+	"github.com/giancarlopro/ks/config"
 )
 
-func TestEnterInteractiveShell(t *testing.T) {
-	cluster := "test-cluster"
-	configDir := filepath.Join(os.Getenv("HOME"), ".config", "ks", "clusters")
-	configFile := filepath.Join(configDir, cluster+".yaml")
+func TestRootActivatesAClusterByName(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	// Spawn a shell that exits at once, so the test does not wait for input.
+	t.Setenv("SHELL", "/bin/true")
 
-	cmd := exec.Command("zsh")
-	cmd.Env = append(os.Environ(), fmt.Sprintf("KUBECONFIG=%s", configFile))
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	registerCluster(t, "test-cluster")
 
-	err := cmd.Run()
-	if err != nil {
-		t.Errorf("Error entering interactive shell: %v", err)
+	// `ks <cluster-name>` activates a cluster without the selector.
+	rootCmd.SetArgs([]string{"test-cluster"})
+	t.Cleanup(func() { rootCmd.SetArgs(nil) })
+
+	if err := rootCmd.Execute(); err != nil {
+		t.Fatalf("Error activating cluster: %v", err)
+	}
+
+	if got := currentContextOf(t, config.GeneratedConfigFile("test-cluster")); got != "test-cluster" {
+		t.Errorf("Expected current-context test-cluster, got %q", got)
 	}
 }

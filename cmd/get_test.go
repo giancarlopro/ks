@@ -3,28 +3,19 @@ package cmd
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
 func TestGetClusterDetails(t *testing.T) {
-	// Set up test environment
-	homeDir := os.Getenv("HOME")
-	configDir := filepath.Join(homeDir, ".config", "ks", "clusters")
-	clusterName := "test-cluster"
-	configFile := filepath.Join(configDir, clusterName+".yaml")
+	t.Setenv("HOME", t.TempDir())
 
-	// Create a temporary configuration file
-	err := os.MkdirAll(configDir, 0755)
-	if err != nil {
+	clusterName := "test-cluster"
+	configFile := clusterConfigFile(clusterName)
+
+	if err := os.MkdirAll(filepath.Dir(configFile), 0755); err != nil {
 		t.Fatalf("Error creating config directory: %v", err)
 	}
-	defer os.RemoveAll(configDir)
-
-	file, err := os.Create(configFile)
-	if err != nil {
-		t.Fatalf("Error creating config file: %v", err)
-	}
-	defer file.Close()
 
 	// Write test data to the configuration file
 	testData := `
@@ -55,8 +46,7 @@ users:
         interactiveMode: IfAvailable
         provideClusterInfo: true
 `
-	_, err = file.WriteString(testData)
-	if err != nil {
+	if err := os.WriteFile(configFile, []byte(testData), 0600); err != nil {
 		t.Fatalf("Error writing test data to config file: %v", err)
 	}
 
@@ -95,6 +85,9 @@ users:
       interactiveMode: IfAvailable
       provideClusterInfo: true
 `
+	// getClusterDetails renders the file, so it emits no leading newline.
+	expectedDetails = strings.TrimPrefix(expectedDetails, "\n")
+
 	if clusterDetails != expectedDetails {
 		t.Errorf("Cluster details do not match. Expected: %s, Got: %s", expectedDetails, clusterDetails)
 	}

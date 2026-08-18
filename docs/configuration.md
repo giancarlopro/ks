@@ -113,6 +113,16 @@ users:
 
 The `ks` CLI validates the YAML configuration files when they are read or written. If a file is invalid or corrupted, a clear error message will be displayed, indicating the issue and the file path. Suggestions for fixing the issue will also be provided, such as checking the file format or using the `ks edit` command to correct the configuration.
 
+## Importing an existing kubeconfig
+
+`ks import` turns a kubeconfig that `ks` does not manage into cluster files. It writes one file for each context. Each file holds that context, the cluster it names, and the user it names. Names inside the file stay as the source file wrote them, and the merge renames them for display.
+
+Import derives a suggested name from each context name. It takes the part after the last `_`, `/`, or `:`, because every provider puts the cluster name there. It then keeps only letters, digits, `-`, and `.`.
+
+Import writes no file until every name is chosen, so a cancelled import leaves nothing behind. It never overwrites a registered cluster.
+
+Import also offers to take over `~/.kube/config`. It moves that file to `~/.kube/config.bkp`, and links `~/.kube/config` to the merged kubeconfig of the cluster that held the active context. `ks restore-kubeconfig` moves the backup back. Import skips the move when a backup file already exists, so an earlier backup is never lost.
+
 ## Merged kubeconfigs
 
 The files in `~/.config/ks/clusters/` are the ones you write. `ks` also builds one **merged kubeconfig** for each of them, in `~/.config/ks/generated/`. A merged kubeconfig holds a context for every registered cluster. `ks activate` and `ks set-default` point at these files, not at the files you write.

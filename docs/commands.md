@@ -10,6 +10,58 @@ Shows a list of clusters that you can select to enter into an interactive shell 
 ks
 ```
 
+## ks import
+
+Import a kubeconfig that `ks` does not manage. Import registers one cluster for each context it finds.
+
+With no path, import reads every path in `KUBECONFIG` when that variable is set, and `~/.kube/config` otherwise. Paths given as arguments replace that. Import refuses any path inside `~/.config/ks/`, because those files already belong to `ks`.
+
+For each context, import prompts for a name and suggests the last segment of the context name. Enter accepts the suggestion, a typed name replaces it, and `-` skips the context.
+
+Import then offers to move `~/.kube/config` to `~/.kube/config.bkp`, and to point `~/.kube/config` at the cluster that held the active context. Undo that with `ks restore-kubeconfig`.
+
+### Usage
+
+```sh
+ks import [path...]
+```
+
+### Flags
+
+- `--as <name>`: Register every context as one cluster with this name, instead of one cluster for each context.
+- `--yes`, `-y`: Accept every suggested name, and move the default config without asking.
+
+### Example
+
+```sh
+ks import
+ks import --as work ~/.kube/work.yaml
+```
+
+## ks restore-kubeconfig
+
+Restore the kubeconfig that `ks import` moved aside. It moves `~/.kube/config.bkp` back to `~/.kube/config`.
+
+The clusters that import registered stay registered. Only the default `kubectl` config changes.
+
+Restore stops when `~/.kube/config` is a file that `ks` did not create. Pass `--force` to overwrite it.
+
+### Usage
+
+```sh
+ks restore-kubeconfig
+```
+
+### Flags
+
+- `--force`: Overwrite a default config that `ks` did not create.
+
+### Example
+
+```sh
+ks restore-kubeconfig
+```
+
 ## ks add
 
 Register a new Kubernetes cluster with the given name and open the default editor so the user can set the content of the file.

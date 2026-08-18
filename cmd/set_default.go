@@ -27,9 +27,6 @@ func init() {
 }
 
 func setDefaultCluster(cluster string) error {
-	kubeDir := config.KubeDir()
-	defaultConfigFile := config.DefaultConfigFile()
-
 	// Make sure the cluster we're pointing at actually exists.
 	if _, err := os.Stat(clusterConfigFile(cluster)); err != nil {
 		if os.IsNotExist(err) {
@@ -51,8 +48,16 @@ func setDefaultCluster(cluster string) error {
 		return err
 	}
 
+	return linkDefaultConfig(configFile)
+}
+
+// linkDefaultConfig points the default kubectl config at a merged kubeconfig.
+// It replaces whatever is there, so a caller checks first.
+func linkDefaultConfig(configFile string) error {
+	defaultConfigFile := config.DefaultConfigFile()
+
 	// Ensure the ~/.kube directory exists.
-	if err := os.MkdirAll(kubeDir, 0755); err != nil {
+	if err := os.MkdirAll(config.KubeDir(), 0755); err != nil {
 		return fmt.Errorf("failed to create kube directory: %w", err)
 	}
 

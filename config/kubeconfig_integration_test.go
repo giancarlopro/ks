@@ -5,6 +5,7 @@ package config
 import (
 	"os"
 	"os/exec"
+	"path/filepath"
 	"sort"
 	"strings"
 	"testing"
@@ -152,6 +153,41 @@ func TestKubectlDoesNotSeeOriginalContextNames(t *testing.T) {
 		"--context=gke_project_region_prod")
 	if err == nil {
 		t.Errorf("expected the original context name to be gone, got:\n%s", out)
+	}
+}
+
+func TestKubectlReadsImportedContexts(t *testing.T) {
+	kubectl := requireKubectl(t)
+
+	useTempHome(t)
+	source := filepath.Join(HomeDir(), "kubeconfig")
+	writeFile(t, source, providerConfig)
+
+	// Import the way the command does: read the source, then register each
+	// context under the name ks suggests.
+	contexts, _, err := ReadSources([]string{source})
+	if err != nil {
+		t.Fatalf("ReadSources: %v", err)
+	}
+	for _, ctx := range contexts {
+		if err := WriteCluster(ctx.Suggested, ctx.Config()); err != nil {
+			t.Fatalf("WriteCluster: %v", err)
+		}
+	}
+	rebuild(t)
+
+	// kubectl sees the short names the user chose, not the provider names.
+	merged := GeneratedConfigFile("prod")
+	names := strings.Split(kubectlOut(t, kubectl, merged, "config", "get-contexts", "-o", "name"), "\n")
+	sort.Strings(names)
+	want := "prod,prod-admin,staging"
+	if got := strings.Join(names, ","); got != want {
+		t.Errorf("expected contexts %q, got %q", want, got)
+	}
+
+	// Each imported context resolves, so a tool can select it.
+	for _, name := range []string{"prod", "prod-admin", "staging"} {
+		kubectlOut(t, kubectl, merged, "config", "view", "--minify", "--context="+name)
 	}
 }
 
